@@ -1,0 +1,125 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: traefik-ingress-controller
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik-ingress-controller
+  namespace: kube-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: traefik-ingress-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik-ingress-controller
+subjects:
+- kind: ServiceAccount
+  name: traefik-ingress-controller
+  namespace: kube-system
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: traefik-cfg
+  namespace: kube-system
+  labels:
+    app: traefik
+data:
+  traefik-acme.toml: |
+    defaultEntryPoints = ["http", "https"]
+    [entryPoints]
+      [entryPoints.http]
+      address = ":80"
+        [entryPoints.http.redirect]
+        entryPoint = "https"
+      [entryPoints.https]
+      address = ":443"
+      [entryPoints.https.tls]
+    [acme]
+    email = "lucas@luxaslabs.com"
+    storageFile = "acme.json"
+    onDemand = true
+    onHostRule = true
+    caServer = "https://acme-v01.api.letsencrypt.org/directory"
+    entryPoint = "https"
+
+    # Enable the kubernetes integration
+    [kubernetes]
+
+    [web]
+    address = "localhost:8080"
+
+    [web.statistics]
+
+    [web.metrics.prometheus]
+      buckets=[0.1,0.3,1.2,5.0]
+---
+kind: Deployment
+apiVersion: apps/v1beta1
+metadata:
+  name: traefik-ingress-controller
+  namespace: kube-system
+  labels:
+    app: traefik-ingress-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik-ingress-controller
+  template:
+    metadata:
+      labels:
+        app: traefik-ingress-controller
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        ingress-controller: "true"
+      serviceAccountName: traefik-ingress-controller
+      containers:
+      - image: traefik:v1.3-alpine
+        name: traefik-ingress-controller
+        resources:
+          limits:
+            cpu: 200m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        ports:
+        - name: http
+          containerPort: 80
+          hostPort: 80
+        args:
+        - --configfile=/etc/traefik/traefik-acme.toml
+        - --web=false
+        volumeMounts:
+        - name: traefik-cfg
+          mountPath: /etc/traefik/
+      volumes:
+      - name: traefik-cfg
+        configMap:
+          name: traefik-cfg

@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: k8s-finland-site-ghost
+  namespace: default
+spec:
+  rules:
+  - host: kubernetesfinland.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: kubernetesfinland.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: cloudnativefinland.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: cloudnativefinland.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: www.kubernetesfinland.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: www.kubernetesfinland.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: www.cloudnativefinland.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
+  - host: www.cloudnativefinland.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8s-finland-site-ghost
+          servicePort: 80
