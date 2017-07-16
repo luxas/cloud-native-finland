@@ -1,0 +1,95 @@
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - services
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: default
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: Prometheus
+metadata:
+  name: intra-prometheus
+  labels:
+    app: intra-prometheus
+    prometheus: intra-prometheus
+spec:
+  replicas: 1
+  baseImage: luxas/prometheus
+  version: v1.7.1
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      service-monitor: intra-prometheus
+  resources:
+    requests:
+      memory: 300Mi
+#  storage:
+#    resources:
+#      requests:
+#        storage: 3Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intra-prometheus
+  labels:
+    app: intra-prometheus
+    prometheus: intra-prometheus
+spec:
+  ports:
+  - name: web
+    port: 9090
+    targetPort: web
+  selector:
+    prometheus: intra-prometheus
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: intra-prometheus
+  annotations:
+    ingress.kubernetes.io/auth-type: "basic"
+    ingress.kubernetes.io/auth-secret: "prom-ing-secret"
+    # The Secret prom-ing-secret was created like this:
+    # htpasswd -c ./auth <user>
+    # <enter password>
+    # ls auth
+    # auth
+    # kubectl create secret generic prom-ing-secret --from-file auth
+spec:
+  rules:
+  - host: prometheus.kubernetesfinland.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: intra-prometheus
+          servicePort: 9090
