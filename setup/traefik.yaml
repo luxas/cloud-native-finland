@@ -147,3 +147,16 @@ spec:
     targetPort: 8080
   selector:
     app: traefik-ingress-controller
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ServiceMonitor
+metadata:
+  name: traefik-ingress-controller
+  labels:
+    service-monitor: intra-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: traefik-ingress-controller
+  endpoints:
+  - port: web
