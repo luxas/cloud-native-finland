@@ -1,0 +1,74 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: slackin
+  labels:
+    app: slackin
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: slackin
+    spec:
+      containers:
+      - name: slackin
+        image: luxas/slackin
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        command:
+        - /srv/www/bin/slackin
+        env:
+        - name: SLACK_SUBDOMAIN
+          value: kubernetes-finland
+        - name: PORT
+          value: "80"
+        # How to create the slackin Secret:
+        # kubectl create secret generic slackin \
+        #     --from-literal=GOOGLE_CAPTCHA_SITEKEY=<sitekey> \
+        #     --from-literal=GOOGLE_CAPTCHA_SECRET=<secret> \
+        #     --from-literal=SLACK_API_TOKEN=<token>
+        - name: SLACK_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slackin
+              key: SLACK_API_TOKEN
+        - name: GOOGLE_CAPTCHA_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: slackin
+              key: GOOGLE_CAPTCHA_SECRET
+        - name: GOOGLE_CAPTCHA_SITEKEY
+          valueFrom:
+            secretKeyRef:
+              name: slackin
+              key: GOOGLE_CAPTCHA_SITEKEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: slackin
+  name: slackin
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: slackin
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: slackin
+spec:
+  rules:
+  - host: slack.kubernetesfinland.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: slackin
+          servicePort: 80
