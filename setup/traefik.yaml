@@ -26,7 +26,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: traefik-ingress-controller
-  namespace: kube-system
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -39,13 +38,12 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: traefik-ingress-controller
-  namespace: kube-system
+  namespace: default
 ---
 kind: ConfigMap
 apiVersion: v1
 metadata:
   name: traefik-cfg
-  namespace: kube-system
   labels:
     app: traefik
 data:
@@ -61,7 +59,7 @@ data:
       [entryPoints.https.tls]
     [acme]
     email = "lucas@luxaslabs.com"
-    storageFile = "acme.json"
+    storageFile = "/etc/traefik-certs/acme.json"
     onDemand = true
     onHostRule = true
     caServer = "https://acme-v01.api.letsencrypt.org/directory"
@@ -71,22 +69,20 @@ data:
     [kubernetes]
 
     [web]
-    address = "localhost:8080"
+    address = ":8080"
 
     [web.statistics]
 
     [web.metrics.prometheus]
       buckets=[0.1,0.3,1.2,5.0]
 ---
-kind: Deployment
-apiVersion: apps/v1beta1
+apiVersion: extensions/v1beta1
+kind: DaemonSet
 metadata:
-  name: traefik-ingress-controller
-  namespace: kube-system
   labels:
     app: traefik-ingress-controller
+  name: traefik-ingress-controller
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: traefik-ingress-controller
@@ -95,7 +91,6 @@ spec:
       labels:
         app: traefik-ingress-controller
     spec:
-      hostNetwork: true
       nodeSelector:
         ingress-controller: "true"
       serviceAccountName: traefik-ingress-controller
@@ -113,13 +108,42 @@ spec:
         - name: http
           containerPort: 80
           hostPort: 80
+        - name: https
+          containerPort: 443
+          hostPort: 443
+        - name: web
+          containerPort: 8080
         args:
         - --configfile=/etc/traefik/traefik-acme.toml
-        - --web=false
         volumeMounts:
         - name: traefik-cfg
           mountPath: /etc/traefik/
+        - name: traefik-certs
+          mountPath: /etc/traefik-certs/
       volumes:
       - name: traefik-cfg
         configMap:
           name: traefik-cfg
+      - name: traefik-certs
+        hostPath:
+          path: /etc/traefik/certs/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: traefik-ingress-controller
+  name: traefik-ingress-controller
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  - name: https
+    port: 443
+    targetPort: 443
+  - name: web
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: traefik-ingress-controller
