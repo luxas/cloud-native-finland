@@ -77,13 +77,13 @@ metadata:
   name: intra-prometheus
   annotations:
     ingress.kubernetes.io/auth-type: "basic"
-    ingress.kubernetes.io/auth-secret: "prom-ing-secret"
-    # The Secret prom-ing-secret was created like this:
+    ingress.kubernetes.io/auth-secret: "admin-ingress-secret"
+    # The Secret admin-ingress-secret was created like this:
     # htpasswd -c ./auth <user>
     # <enter password>
     # ls auth
     # auth
-    # kubectl create secret generic prom-ing-secret --from-file auth
+    # kubectl create secret generic admin-ingress-secret --from-file auth
 spec:
   rules:
   - host: prometheus.kubernetesfinland.com
