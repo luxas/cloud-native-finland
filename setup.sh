@@ -27,6 +27,7 @@ EOF
 
 # Start your Kubernetes master
 systemctl start kubelet
+# TODO: Make sure --enable-hostpath-provisioner=true is passed to the controller-manager
 kubeadm init --skip-preflight-checks --apiserver-cert-extra-sans api.kubernetesfinland.com
 
 # Use the admin credentials
@@ -61,6 +62,8 @@ while [[ $(kubectl get cluster; echo $?) == 1 ]]; do sleep 1; done
 kubectl apply -f https://raw.githubusercontent.com/rook/rook/${ROOK_BRANCH}/demo/kubernetes/rook-cluster.yaml
 kubectl apply -f https://raw.githubusercontent.com/rook/rook/${ROOK_BRANCH}/demo/kubernetes/rook-storageclass.yaml
 
+kubectl apply -f setup/hostpath.yaml
+
 # Deploy the Prometheus operator and an instance in the default namespace so that we can monitor things in the cluster
 kubectl apply -f setup/monitoring/prometheus-operator.yaml
 
@@ -78,7 +81,9 @@ kubectl apply -f setup/loadbalancing/traefik.yaml
 ###### INSTALL APPLICATIONS ON TOP #######
 
 # Install Ghost and a backing MariaDB
-helm install --name k8s-finland-site -f setup/blog/ghost-values.yaml stable/ghost
+sed "s|MARIADBPASSWORD|$(hexdump -n 16 -e '4/4 "%08x" 1 "\n"' /dev/random)|g" setup/blog/ghost-values.yaml > setup/blog/ghost-values.tmp.yaml
+helm install --name k8s-finland-site -f setup/blog/ghost-values.tmp.yaml ./setup/blog/ghost
+rm setup/blog/ghost-values.tmp.yaml
 
 # Make Traefik loadbalance HTTP requests from the internet to the ghost Services in-cluster
 kubectl apply -f setup/blog/ghost-ingress.yaml
