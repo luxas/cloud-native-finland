@@ -61,22 +61,22 @@ mariadb:
   ## MariaDB admin password
   ## ref: https://github.com/bitnami/bitnami-docker-mariadb/blob/master/README.md#setting-the-root-password-on-first-run
   ##
-  # mariadbRootPassword:
+  mariadbRootPassword: MARIADBPASSWORD
 
   ## Enable persistence using Persistent Volume Claims
   ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
   ##
   persistence:
-    enabled: true
+    enabled: false
     ## If defined, volume.beta.kubernetes.io/storage-class: <storageClass>
     ## Default: volume.alpha.kubernetes.io/storage-class: default
     ##
-    storageClass: rook-block
+    storageClass: hostpath
     accessMode: ReadWriteOnce
-    size: 8Gi
+    size: 2Gi
 
 ## Kubernetes configuration
-## For minikube, set this to NodePort, elsewhere use LoadBalancer
+## For minikube, set this to NodePort, elsewhere use ClusterIP or LoadBalancer
 ##
 serviceType: ClusterIP
 
@@ -84,13 +84,13 @@ serviceType: ClusterIP
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
 ##
 persistence:
-  enabled: true
+  enabled: false
   ## If defined, volume.beta.kubernetes.io/storage-class: <storageClass>
   ## Default: volume.alpha.kubernetes.io/storage-class: default
   ##
-  storageClass: rook-block
+  storageClass: hostpath
   accessMode: ReadWriteOnce
-  size: 8Gi
+  size: 2Gi
 
 ## Configure resource requests and limits
 ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
