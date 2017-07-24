@@ -81,9 +81,8 @@ kubectl apply -f setup/loadbalancing/traefik.yaml
 ###### INSTALL APPLICATIONS ON TOP #######
 
 # Install Ghost and a backing MariaDB
-sed "s|MARIADBPASSWORD|$(hexdump -n 16 -e '4/4 "%08x" 1 "\n"' /dev/random)|g" setup/blog/ghost-values.yaml > setup/blog/ghost-values.tmp.yaml
-helm install --name k8s-finland-site -f setup/blog/ghost-values.tmp.yaml ./setup/blog/ghost
-rm setup/blog/ghost-values.tmp.yaml
+MARIADBPASSWORD=$(hexdump -n 16 -e '4/4 "%08x" 1 "\n"' /dev/random)
+helm install --name k8s-finland-site -f setup/blog/ghost-values.tmp.yaml --set mariadb.mariadbRootPassword=${MARIADBPASSWORD} stable/ghost
 
 # Make Traefik loadbalance HTTP requests from the internet to the ghost Services in-cluster
 kubectl apply -f setup/blog/ghost-ingress.yaml
